@@ -1,0 +1,67 @@
+<html>
+  <head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title> Tracking - Productivision </title>
+  </head>
+  <body>
+
+  <input id="silent_enabled" type="checkbox"><span>Silent Notification</span>
+
+  <div class="timer_area">
+    <h1 id="counter">Timer: 0</h1>
+  </div>
+
+
+  <div class="notification" id="warning" style="display: none;">
+      <h2>Take A break</h2>
+        <button class = "button" id="restart">
+          <a id="button" href={{ url_for("restart") }}>I'm well rested!</a>
+        </button>
+  </div>
+
+  </body>
+  <script>
+      Notification.requestPermission().then((result) => {
+        console.log(result);
+      });
+      const INTERVAL = 3
+      const warning_threshold = 10;
+
+      const counterDisplay = $("#counter");
+      const warningDisplay = $("#warning");
+      const resumeButton = $("#resume");
+
+      let intervalId;
+
+      function startTracking() {
+        // get the counter variable from flask get_time()
+        $.get("/get_time", function(data) {
+            counterDisplay.text("Timer: " + data.counter);
+            if (data.counter >= warning_threshold) {
+            // pause request and display warning
+                clearInterval(intervalId)
+                const break_notification = new Notification('Time to take a break', {
+                    body: 'Click to dismiss and reset tracker!',
+                    silent: $('#silent_enabled').is(":checked"),
+                });
+                break_notification.onclick = () =>{
+                  window.parent.focus();
+                  break_notification.close()
+                }
+                warningDisplay.show();
+            }
+        });
+     }
+
+     // running in the background checking every INTERVAL second what's current
+      // screen time
+      intervalId = setInterval(startTracking, INTERVAL * 1000);
+
+      resumeButton.click(() => {
+          // dismiss warning and resume tracker
+          warningDisplay.hide();
+          intervalId = setInterval(startTracking, INTERVAL * 1000);;
+      })
+
+  </script>
+</html>
